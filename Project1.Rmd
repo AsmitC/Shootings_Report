@@ -1,0 +1,245 @@
+---
+title: "Project 1"
+author: "Asmit Chakraborty"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(knitr)
+library(kableExtra)
+library(RColorBrewer)
+shootings <- read.csv("Project1_police_shootings.csv")
+shootings_ggplot <- ggplot(shootings)
+```
+
+# **Introduction**
+The data set we will use in this project refers to a collection of police shooting cases collected by The Washington Post. This data is from 2015 to 2019. It only documents shootings that occurred while the officer was on duty, so people who were shot in custody are not included. Although the FBI and CDC record police shootings, the Post believes that their records are lackluster. Consequently, this data set has documented over twice as many shootings as the annual average recorded by the FBI or CDC.^[https://github.com/washingtonpost/data-police-shootings]
+
+Variables contained within the data set include four main categories: Person, Incident, Factors, and Shooting. Within each main category, there are several subcategories.
+
+Within the person category, the variables are Person.Name (full name of the individual or unknown if not reported), Person.Age (Age of the individual from or 0 if not reported), Person.Gender (Male, Female, or unknown), and Person.Race (either Asian, African American, White, Hispanic, Native American, Other, or Unknown.)
+
+Within the incident category, the variable are Incident.Date.Month (month 1-12 in which the shooting occurred), Incident.Date.Day (day 1-31 in which the shooting occurred), Incident.Date.Year (Year 2015-2019 in which the shooting occurred), and Incident.Date.Full (Date in which the shooting occurred in the format year/month/day)
+
+Within the factors category, the variables are Factors.Armed (Description of any weapon carried by the person and unknown if not reported), Factors.Mental-Illness (true if factors of mental illness were perceived and false otherwise), Factors.Threat-Level (Threat of the person as perceived, either "attack," "undetermined," "other," or "unknown" if unreported), and Factors.Fleeing (details by which method the person was fleeing, "Not Fleeing" if not fleeing, and "unknown" if unreported)
+
+Finally, within the shooting category, the variables are Shooting.Manner (either "shot" or "shot and Tasered"), and Shooting.Body-Camera (True of body camera recorded the incident, false otherwise)
+
+The chosen outcome variable of this report is the perceived threat level of the person. The predictors we will analyze include the person's age, gender, and race.
+
+![Police officer with a gun](Police.jpeg){width=30%}  
+[Source: istockphoto.com](https://www.istockphoto.com/photo/portrait-of-police-officer-holding-gun-isolated-on-white-gm108125647-647661)
+
+\newpage
+
+# **Looking At The Outcome Variable**
+
+```{r echo = FALSE}
+
+# Creates a bar plot for the distribution of the amount of people perceived as attack, other, or undetermined
+
+shootings_ggplot + geom_bar(aes(x = Factors.Threat.Level), col = 'black', fill = 'pink') + labs(x = 'Types Of Threat', y = 'Amount Of People', title = 'Distribution Of Different Perceived Threat Levels') + theme_classic()
+```
+
+```{r echo = FALSE}
+
+# Creates proportions of people viewed at each threat level
+
+attack = sum(shootings$Factors.Threat.Level == 'attack')/nrow(shootings)
+other = sum(shootings$Factors.Threat.Level == 'other')/nrow(shootings)
+undetermined = sum(shootings$Factors.Threat.Level == 'undetermined')/nrow(shootings)
+
+# Combines the proportions from the last step into a vector, and adds that and a vector with the types of 
+# perceived threat and ultimately puts it all into a data frame
+
+proportions = c(attack, other, undetermined)
+types = c('attack', 'other', 'undetermined')
+univariatedf = data.frame(types, proportions)
+
+# Creates a table of the proportions from above
+
+kable(univariatedf, col.names = c('Level Of Perceived Threat', 'Proportions'), format = 'pipe', digits = 2)
+```
+
+The proportion of people that were perceived as fitting the "attack" level of threat was roughly 0.64. The proportion of people that fit the "other" level of threat was about 0.32, and the proportion that fit the "undetermined" category was approximately 0.03. Indeed, the majority of people shot were recognized to be aggressors that posed an immediate threat to life.  
+
+\newpage
+
+# **Looking At Each Predictor**
+**Age**  
+```{r echo = FALSE}
+
+# Creates a box plot showing the distribution of the ages of the shooting victims
+
+shootings_ggplot + geom_boxplot(aes(x = Factors.Threat.Level, y = Person.Age, fill = Factors.Threat.Level)) + labs(x = 'Perceived Threat Level', y = 'Age In Years', title = 'Age vs Perceived Threat Level') + theme(legend.title = element_blank())
+```
+
+```{r echo = FALSE}
+
+# Variables storing the five number summaries for each level of perceived threat by age
+
+fivenum_attack_age = fivenum(shootings$Person.Age[shootings$Factors.Threat.Level == 'attack'])
+fivenum_other_age = fivenum(shootings$Person.Age[shootings$Factors.Threat.Level == 'other'])
+fivenum_undetermined_age = fivenum(shootings$Person.Age[shootings$Factors.Threat.Level == 'undetermined'])
+
+# For each five number summary, splits the numbers and adds them to a corresponding vector. For example,
+# attack_age stores each of the five numbers in the five number summary from fivenum_attack_age, but in
+# different places in the vector. 
+
+attack_age = c(fivenum_attack_age[1], fivenum_attack_age[2], fivenum_attack_age[3], fivenum_attack_age[4], fivenum_attack_age[5])
+other_age = c(fivenum_other_age[1], fivenum_other_age[2], fivenum_other_age[3], fivenum_other_age[4], fivenum_other_age[5])
+undetermined_age = c(fivenum_undetermined_age[1], fivenum_undetermined_age[2], fivenum_undetermined_age[3], fivenum_undetermined_age[4], fivenum_undetermined_age[5])
+
+# Creates a variable name column
+
+threat_age_columns = c('Minimum', 'Q1', 'Median', 'Q3', 'Maximum')
+
+# Creates a dataframe with the variable name column and the vectors containing the five number summaries
+# for each of the different types of threat levels filtered by age
+age_df = data.frame(threat_age_columns, attack_age, other_age, undetermined_age)
+
+# Creates a table displaying the data frame
+kable(age_df, col.names = c('Five Number Summary', 'Attack', 'Other', 'Undetermined'), format = 'pipe')
+```
+
+All three threat types have similar distributions. Although, in general, the ages of undetermined threat types tend to be slightly younger, it appears that there is no significant relationship between age and perceived threat level since all three plots are similar in spread and located around the same medians.
+
+\newpage
+
+**Gender**  
+```{r echo = FALSE}
+
+# Creates a subset of the full data frame excluding people whose gender was unknown and plots the amount of people
+# perceived as each type of threat level separated by gender
+gender <- shootings[shootings$Person.Gender != "Unknown",]
+ggplot(gender) + geom_bar(aes(x = Factors.Threat.Level, fill = Person.Gender)) + facet_wrap(~Person.Gender) + labs(x = 'Perceived Threat Level', y = 'Amount Of People', title = 'Amount Of People Perceived As Types Of Threat Separated By Gender') + theme(legend.title = element_blank())
+```
+
+```{r echo = FALSE}
+
+# Subsets to create a male and female data frame
+men = gender[gender$Person.Gender == 'Male',]
+women = gender[gender$Person.Gender == 'Female',]
+
+# Creates propotions for the number of men and women, respectively to be perceived as each type of threat
+
+men_attack = sum(men$Factors.Threat.Level == 'attack') / nrow(men)
+men_other = sum(men$Factors.Threat.Level == 'other') / nrow(men)
+men_undetermined = sum(men$Factors.Threat.Level == 'undetermined') / nrow(men)
+
+women_attack = sum(women$Factors.Threat.Level == 'attack') / nrow(women)
+women_other = sum(women$Factors.Threat.Level == 'other') / nrow(women)
+women_undetermined = sum(women$Factors.Threat.Level == 'undetermined') / nrow(women)
+
+# Creates two vectors containing the respective proportions of men and women perceived as each level of threat
+men_prop = c(men_attack, men_other, men_undetermined)
+women_prop = c(women_attack, women_other, women_undetermined)
+
+# Creates a variable name vector and combines it with the two vectors above to create a data frame
+types = c('attack', 'other', 'undetermined')
+genderdf = data.frame(types, men_prop, women_prop)
+
+# Prints the data frame of proportions of each gender perceived as each type of threat in a table
+kable(genderdf, col.names = c('Level Of Perceived Threat' , 'Proportion Of Men', 'Proportion Of Women'), format = 'pipe' , digits = 2)
+```
+
+The proportion of women that were perceived as fitting the "attack" category was about 0.58, whereas the proportion of men fitting the same category was roughly 0.65. Moreover, the proportion of men and women that were of an "undetermined" threat level was approximately the same, being 0.03 and 0.02, respectively. Indeed, men were slightly more likely to be viewed by the officer as posing a threat to life.  
+
+\newpage
+
+**Race**  
+```{r echo = FALSE}
+
+# Creates a bar plot to show the number of people perceived as each type of threat level separated by race
+
+shootings_ggplot + geom_bar(aes(x = Factors.Threat.Level, fill = Person.Race)) + facet_wrap(~Person.Race, ncol = 2) + labs(x = 'Perceived Threat Level', y = 'Amount Of People', title = 'Amount Of People Perceived As Types Of Threat Separated By Race') + theme(legend.title = element_blank())
+```
+
+```{r echo = FALSE}
+
+# Creates subsets the full data set by race
+
+african_american = shootings[shootings$Person.Race == 'African American',]
+asian = shootings[shootings$Person.Race == 'Asian',]
+hispanic = shootings[shootings$Person.Race == 'Hispanic',]
+native_american = shootings[shootings$Person.Race == 'Native American',]
+other = shootings[shootings$Person.Race == 'Other',]
+unknown = shootings[shootings$Person.Race == 'Unknown',]
+white = shootings[shootings$Person.Race == 'White',]
+
+# Creates proportion variables for the number of people perceived as each threat level for each race
+
+african_american_attack = sum(african_american$Factors.Threat.Level == 'attack') / nrow(african_american)
+african_american_other = sum(african_american$Factors.Threat.Level == 'other') / nrow(african_american)
+african_american_undetermined = sum(african_american$Factors.Threat.Level == 'undetermined') / nrow(african_american)
+
+asian_attack = sum(asian$Factors.Threat.Level == 'attack') / nrow(asian)
+asian_other = sum(asian$Factors.Threat.Level == 'other') / nrow(asian)
+asian_undetermined = sum(asian$Factors.Threat.Level == 'undetermined') / nrow(asian)
+
+hispanic_attack = sum(hispanic$Factors.Threat.Level == 'attack') / nrow(hispanic)
+hispanic_other = sum(hispanic$Factors.Threat.Level == 'other') / nrow(hispanic)
+hispanic_undetermined = sum(hispanic$Factors.Threat.Level == 'undetermined') / nrow(hispanic)
+
+native_american_attack = sum(native_american$Factors.Threat.Level == 'attack') / nrow(native_american)
+native_american_other = sum(native_american$Factors.Threat.Level == 'other') / nrow(native_american)
+native_american_undetermined = sum(native_american$Factors.Threat.Level == 'undetermined') / nrow(native_american)
+
+other_attack = sum(other$Factors.Threat.Level == 'attack') / nrow(other)
+other_other = sum(other$Factors.Threat.Level == 'other') / nrow(other)
+other_undetermined = sum(other$Factors.Threat.Level == 'undetermined') / nrow(other)
+
+unknown_attack = sum(unknown$Factors.Threat.Level == 'attack') / nrow(unknown)
+unknown_other = sum(unknown$Factors.Threat.Level == 'other') / nrow(unknown)
+unknown_undetermined = sum(unknown$Factors.Threat.Level == 'undetermined') / nrow(unknown)
+
+white_attack = sum(white$Factors.Threat.Level == 'attack') / nrow(white)
+white_other = sum(white$Factors.Threat.Level == 'other') / nrow(white)
+white_undetermined = sum(white$Factors.Threat.Level == 'undetermined') / nrow(white)
+
+# Combines the attack, other, and undetermined proportions for each race into a corresponding vector
+
+african_american_prop = c(african_american_attack, african_american_other, african_american_undetermined)
+
+asian_prop = c(asian_attack, asian_other, asian_undetermined)
+
+hispanic_prop = c(hispanic_attack, hispanic_other, hispanic_undetermined)
+
+native_american_prop = c(native_american_attack, native_american_other, native_american_undetermined)
+
+other_prop = c(other_attack, other_other, other_undetermined)
+
+unknown_prop = c(unknown_attack, unknown_other, unknown_undetermined)
+
+white_prop = c(white_attack, white_other, white_undetermined)
+
+# Creates a variable name vector
+
+Type = c('attack', 'other', 'undetermined')
+
+# Creates a data frame combining the vectors from above
+race_df = data.frame(Type, african_american_prop, asian_prop, hispanic_prop, native_american_prop, other_prop, unknown_prop, white_prop)
+
+#Creates a table to display the data frame above
+
+kable(race_df, format = 'pipe' , digits = 2, col.names = c('Type', 'African American', 'Asian', 'Hispanic', 'Native American', 'Other', 'Unknown', 'White'))
+```
+
+Most groups had similar proportions of people perceived as "attack," "other," or "undetermined." However, there is a noticeable difference that African American people had the highest proportion (0.67) of people perceived as "attack," and Asian people had the lowest proportion of people perceived the same way (0.53). Moreover, White people and those whose race was classified as other or unknown had similar proportions to African American people, whereas those who were classified as Hispanic or Native American had similar proportions to Asian people. People with an unknown race also had the highest proportion of people with an undetermined threat level.
+
+\newpage
+
+# **Conclusion**
+
+Overall, a higher proportion of men are perceived as threats than women. Furthermore, a higher proportion of African American people are perceived as being threats than any other race, with Asian people having the lowest proportion of people perceived that way. Age does not appear to be a significant factor in  threat level. Hence, an African American man is likely more subject to being perceived as dangerous than an Asian woman. This may have artificially increased the number of African American men shot by police in the line of duty.
+
+Future research may want to do further investigation on the backgrounds of the police officers. For example, an African American officer and a White officer may view the same African American man as a different level of threat due to their respective backgrounds.^[https://link.springer.com/article/10.1007/s12111-013-9246-5] Moreover, an older officer may perceive any given person as more dangerous than a younger officer would. Another avenue of possible research is the criminal background of the people shot. For example, a person with a known criminal background is likely to be viewed as more dangerous than any person without a criminal past.
+
+# **References**
+
+Washingtonpost. “Washingtonpost/Data-Police-Shootings: The Washington Post Is Compiling a Database of Every Fatal Shooting in the United States by a Police Officer in the Line of Duty since 2015.” GitHub, https://github.com/washingtonpost/data-police-shootings. 
+
+Chaney, Cassandra, and Ray V. Robertson. “Racism and Police Brutality in America - Journal of African American Studies.” SpringerLink, Springer US, 12 Jan. 2013, https://link.springer.com/article/10.1007/s12111-013-9246-5. 
